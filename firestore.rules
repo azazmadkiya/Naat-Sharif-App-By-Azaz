@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        ('email' in request.auth.token && request.auth.token.email.matches('(?i)^azazmadkiya@gmail\\.com$')) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['SUPER_ADMIN', 'ADMIN'])
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.role in ['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'CONTRIBUTOR', 'READER', 'VIEWER'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidNaat(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.titleHindi is string && data.titleHindi.size() <= 200 &&
+             (!('titleGujarati' in data) || (data.titleGujarati is string && data.titleGujarati.size() <= 200)) &&
+             (!('titleEnglish' in data) || (data.titleEnglish is string && data.titleEnglish.size() <= 200)) &&
+             (!('poet' in data) || (data.poet is string && data.poet.size() <= 100)) &&
+             (!('publisher' in data) || (data.publisher is string && data.publisher.size() <= 200)) &&
+             (!('addedByName' in data) || (data.addedByName is string && data.addedByName.size() <= 200)) &&
+             data.categoryId is string && data.categoryId.size() <= 100 &&
+             (!('lyricsHindi' in data) || (data.lyricsHindi is string && data.lyricsHindi.size() <= 50000)) &&
+             (!('lyricsGujarati' in data) || (data.lyricsGujarati is string && data.lyricsGujarati.size() <= 50000)) &&
+             (!('lyricsEnglish' in data) || (data.lyricsEnglish is string && data.lyricsEnglish.size() <= 50000)) &&
+             data.submittedBy is string && data.submittedBy.size() <= 200 &&
+             data.isApproved is bool &&
+             data.isDeleted is bool &&
+             (!('orderIndex' in data) || data.orderIndex is int) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidUser(incoming());
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /naats/{naatId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() &&
+                       isValidId(naatId) &&
+                       incoming().id == naatId &&
+                       isValidNaat(incoming());
+
+      allow delete: if isAdmin() || (isSignedIn() && isValidId(naatId));
+    }
+  }
+}

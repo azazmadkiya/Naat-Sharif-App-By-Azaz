@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role definition",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["SUPER_ADMIN", "ADMIN", "EDITOR", "CONTRIBUTOR", "READER", "VIEWER"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Naat": {
+      "title": "Naat",
+      "description": "Naat and Kalam Sharif lyrics and metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleHindi": { "type": "string" },
+        "titleGujarati": { "type": "string" },
+        "titleEnglish": { "type": "string" },
+        "poet": { "type": "string" },
+        "publisher": { "type": "string" },
+        "addedByName": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "lyricsHindi": { "type": "string" },
+        "lyricsGujarati": { "type": "string" },
+        "lyricsEnglish": { "type": "string" },
+        "submittedBy": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "isDeleted": { "type": "boolean" },
+        "orderIndex": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "titleHindi", "categoryId", "submittedBy", "isApproved", "isDeleted"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles indexed by UID"
+    },
+    "/naats/{naatId}": {
+      "schema": "Naat",
+      "description": "Naat and Kalam entries"
+    }
+  }
+}
